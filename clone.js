@@ -8,7 +8,6 @@ const symbolTag = '[object Symbol]';
 const functionTag = '[object Function]';
 const regexpTag = '[object RegExp]';
 const dateTag = '[object Date]';
-const errorTag = '[object Error]';
 
 const deepTags = [arrayTag, objectTag, mapTag, setTag, argsTag];
 
@@ -68,10 +67,9 @@ const cloneFunction = (target) => {
 };
 
 const cloneOtherType = (target, type) => {
-	const Ctor = target?.constructor;
 	switch (type) {
 		case dateTag:
-			return new Ctor(target);
+			return new target.constructor(target);
 		case symbolTag:
 			return cloneSymbol(target);
 		case regexpTag:
@@ -102,14 +100,14 @@ const clone = (target, map = new WeakMap()) => {
 
 	if (type === setTag) {
 		target.forEach((value) => {
-			cloneTarget.add(clone(value));
+			cloneTarget.add(clone(value, map));
 		});
 		return cloneTarget;
 	}
 
 	if (type === mapTag) {
 		target.forEach((value, key) => {
-			cloneTarget.set(key, clone(value));
+			cloneTarget.set(key, clone(value, map));
 		});
 		return cloneTarget;
 	}

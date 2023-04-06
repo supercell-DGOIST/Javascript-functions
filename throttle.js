@@ -10,3 +10,16 @@ function throttle(method, delay) {
 		}
 	};
 }
+
+function throttleOther(method, delay) {
+	let timer = null;
+	return function () {
+		if (timer !== null) return;
+		let context = this;
+		let args = arguments;
+		timer = setTimeout(() => {
+			method.apply(context, args);
+			timer = null;
+		}, delay);
+	};
+}

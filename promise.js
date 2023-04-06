@@ -1,53 +1,77 @@
+// 实例状态
 const PENDING = 'pending';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
 class _Promise {
 	constructor(context) {
+		// 缓存状态
 		this.status = PENDING;
+		// 缓存值
 		this.value = undefined;
-		this.resolveQueue = [];
-		this.rejectQueue = [];
+		// 缓存fulfilled队列
+		this.fulfilledQueue = [];
+		// 缓存rejected队列
+		this.rejectedQueue = [];
 
+		// resolve通知
 		let resolve = (value) => {
 			const run = () => {
+				// 非Pending状态不执行
 				if (this.status !== PENDING) return;
+				// 修改成fulfilled状态
 				this.status = FULFILLED;
+				// 缓存响应值
 				this.value = value;
 
-				while (this.resolveQueue.length) {
-					const callback = this.resolveQueue.shift();
+				// 执行缓存fulfilled队列，并传递响应值
+				while (this.fulfilledQueue.length) {
+					const callback = this.fulfilledQueue.shift();
 					callback(value);
 				}
 			};
+			// 确保异步执行
 			setTimeout(run);
 		};
 
+		// reject通知
 		let reject = (reason) => {
 			const run = () => {
+				// 非Pending状态不执行
 				if (this.status !== PENDING) return;
+				// 修改成rejected状态
 				this.status = REJECTED;
+				// 缓存响应值
 				this.value = reason;
 
-				while (this.rejectQueue.length) {
-					const callback = this.rejectQueue.shift();
+				// 执行缓存rejected队列，并传递响应值
+				while (this.rejectedQueue.length) {
+					const callback = this.rejectedQueue.shift();
 					callback(reason);
 				}
+
+				// 抛出响应错误
+				throw new Error(`(in promise) ${reason}`);
 			};
+			// 确保异步执行
 			setTimeout(run);
 		};
 
 		context(resolve, reject);
 	}
 
+	// 通过then收集onResolve, onRejectFn
 	then(onResolve, onRejectFn) {
+		// onResolve非函数时做预设
 		typeof onResolve !== 'function' ? (onResolve = (value) => value) : null;
+		// onRejectFn非函数时做预设
 		typeof onRejectFn !== 'function'
 			? (onRejectFn = (reason) => {
 					throw new Error(reason instanceof Error ? reason.message : reason);
 			  })
 			: null;
 
+		// 通过返回新的promise实例达到链式调用的效果
 		return new _Promise((resolve, reject) => {
 			const fulfilled = (value) => {
 				try {
@@ -69,8 +93,8 @@ class _Promise {
 
 			switch (this.status) {
 				case PENDING:
-					this.resolveQueue.push(fulfilled);
-					this.rejectQueue.push(rejected);
+					this.fulfilledQueue.push(fulfilled);
+					this.rejectedQueue.push(rejected);
 					break;
 				case FULFILLED:
 					fulfilled(this.value);
@@ -106,17 +130,15 @@ class _Promise {
 	}
 
 	static all(promiseArr) {
-		let index = 0;
 		let result = [];
 		return new _Promise((resolve, reject) => {
 			promiseArr.forEach((p, i) => {
 				_Promise.resolve(p).then(
 					(value) => {
 						result[i] = value;
-						if (index === promiseArr.length - 1) {
+						if (result.length === promiseArr.length) {
 							resolve(result);
 						}
-						index++;
 					},
 					(reason) => {
 						reject(reason);
@@ -138,7 +160,6 @@ class _Promise {
 	}
 
 	static allSettled(promiseArr) {
-		let index = 0;
 		let result = [];
 		return new Promise((resolve) => {
 			promiseArr.forEach((p, i) => {
@@ -148,20 +169,18 @@ class _Promise {
 							status: FULFILLED,
 							value,
 						};
-						if (promiseArr.length - 1 === index) {
+						if (promiseArr.length === result.length) {
 							resolve(result);
 						}
-						index++;
 					},
 					(reason) => {
 						result[i] = {
 							status: REJECTED,
 							value: reason,
 						};
-						if (promiseArr.length - 1 === index) {
+						if (promiseArr.length === result.length) {
 							resolve(result);
 						}
-						index++;
 					}
 				);
 			});
