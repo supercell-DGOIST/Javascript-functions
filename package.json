@@ -4,9 +4,9 @@
   "description": "",
   "type": "module",
   "lint-staged": {
-    "**/*": [
+    "*.{ts}": [
       "npm run format",
-      "npm run test"
+      "npm run eslint"
     ]
   },
   "scripts": {
